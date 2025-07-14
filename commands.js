@@ -57,7 +57,13 @@ const XP_COMMAND = {
 
 const LEADERBOARD_COMMAND = {
   name: 'leaderboard',
-  description: 'Show the top XP users',
+  description: 'Show the top XP users in your server',
+  type: 1,
+};
+
+const GLOBAL_LEADERBOARD_COMMAND = {
+  name: 'globalleaderboard',
+  description: 'Show the top XP users worldwide',
   type: 1,
 };
 
@@ -79,7 +85,7 @@ const CHALLENGE_COMMAND = {
   // contexts: [0, 2],
 };
 
-const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GIVEXP_COMMAND, XP_COMMAND, LEADERBOARD_COMMAND];
+const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GIVEXP_COMMAND, XP_COMMAND, LEADERBOARD_COMMAND, GLOBAL_LEADERBOARD_COMMAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
 

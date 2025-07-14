@@ -10,7 +10,7 @@ import {
 } from 'discord-interactions';
 import { getRandomEmoji, DiscordRequest } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { addXP, getUserXP, getXPData } from './xp.js';
+import { addXP, getUserXP, getXPData, getGlobalXPData} from './xp.js';
 
 // Create an express app
 const app = express();
@@ -152,7 +152,9 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
       const context = req.body.context;
       const targetUserId = req.body.data.options?.[0]?.value || (context === 0 ? req.body.member.user.id : req.body.user.id);
 
-      const xp = getUserXP(targetUserId);
+      const guildId = req.body.guildId || 'global';
+      const xp = getUserXP(targetUserId, guildId);
+      const Globalxp = getUserXP(targetUserId, 'global');
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -167,9 +169,9 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
             {
               title: '📊 XP Summary',
               color: 0x00ffcc,
-              description: `<@${targetUserId}> has **${xp} XP**.`,
+              description: `<@${targetUserId}> has **${xp} XP** in this server!.\n<@${targetUserId}> has **${Globalxp} XP** in total!`,
               footer: {
-                text: 'Keep being helpful to earn more!'
+                text: 'Continue being helpful to earn more!'
               }
             }
           ]
@@ -179,7 +181,8 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
     }
 
     if (name === 'leaderboard') {
-      const xpData = getXPData()
+      const guildId = req.body.guildId || 'global'
+      const xpData = getXPData(guildId)
       
       const sorted = Object.entries(xpData).sort(([, a], [, b]) => b-a).slice(0, 10);
 
@@ -202,6 +205,37 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
               description: leaderboardText || '_No users have XP yet._',
               footer: {
                 text: 'Top 10 members in this server!'
+              }
+            }
+          ]
+        }
+      });
+    }
+
+    if (name === 'globalleaderboard') {
+      const xpData = getGlobalXPData()
+
+      const sorted = Object.entries(xpData).sort(([, a], [, b]) => b - a).slice(0, 15);
+
+      const leaderboardText = sorted.map(
+        ([userId, xp], i) => `**${i + 1}.** <@${userId}> - ${xp}XP`).join('\n');
+
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          // components: [
+          //   {
+          //     type: MessageComponentTypes.TEXT_DISPLAY,
+          //     content: leaderboardText || `No users with XP yet.`
+          //   }
+          // ]
+          embeds: [
+            {
+              title: '🏆 XP Leaderboard',
+              color: 0xffcc00,
+              description: leaderboardText || '_No users have XP yet._',
+              footer: {
+                text: 'Top 15 members worldwide!'
               }
             }
           ]
@@ -311,19 +345,28 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
     } else if (componentId.startsWith('reward:')) {
       const [_prefix, amount, targetUserId] = componentId.split(':');
       const xp = parseInt(amount);
-      const newTotal = addXP(targetUserId, xp);
+      const guildId = req.body.guild_Id || 'global'; //Make sure this works.
+      
+      const newTotal = addXP(targetUserId, xp, guildId);
+      const globalTotal = newTotal;
+      if (guildId !== 'global') {
+        globalTotal = addXP(targetUserId, xp, 'global');
+      }
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          flags: InteractionResponseFlags.EPHEMERAL | InteractionResponseFlags.IS_COMPONENTS_V2,
-          components: [
+          embeds: [
             {
-              type: MessageComponentTypes.TEXT_DISPLAY,
-              content: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP**!`
+              title: '💳 Transaction Summary',
+              color: 0x006853,
+              description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!`,
+              footer: {
+                text: 'Amazing work!'
+              }
             }
           ]
-        },
+        }
       });
     }
 
