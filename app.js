@@ -10,7 +10,7 @@ import {
 } from 'discord-interactions';
 import { getRandomEmoji, DiscordRequest } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { addXP, getUserXP, getXPData, getGlobalXPData} from './xp.js';
+import { addXP, getUserXP, getXPData, getGlobalXPData, canReceiveXp, getProgressBar, getXPLevel, getLevelId } from './xp.js';
 
 // Create an express app
 const app = express();
@@ -152,9 +152,17 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
       const context = req.body.context;
       const targetUserId = req.body.data.options?.[0]?.value || (context === 0 ? req.body.member.user.id : req.body.user.id);
 
-      const guildId = req.body.guildId || 'global';
+      const guildId = req.body.guild_id || 'global';
+      console.log(guildId);
       const xp = getUserXP(targetUserId, guildId);
       const Globalxp = getUserXP(targetUserId, 'global');
+
+      const level = getXPLevel(xp);
+      const GlobalLevel = getXPLevel(Globalxp);
+
+      const progressBar = getProgressBar(xp);
+      const globalProgressBar = getProgressBar(Globalxp);
+
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -169,7 +177,7 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
             {
               title: '📊 XP Summary',
               color: 0x00ffcc,
-              description: `<@${targetUserId}> has **${xp} XP** in this server!.\n<@${targetUserId}> has **${Globalxp} XP** in total!`,
+              description: `<@${targetUserId}> has **${xp} XP** in this server!\n<@${targetUserId}> has **${Globalxp} XP** in total!\n` + `📈 **Level Stats***\n<@${targetUserId}> is at ${level} in this server!\n` + `${progressBar}\n\n` + `At a global scale, <@${targetUserId}> is at ${GlobalLevel}!\n` + `${globalProgressBar}`,
               footer: {
                 text: 'Continue being helpful to earn more!'
               }
@@ -181,13 +189,14 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
     }
 
     if (name === 'leaderboard') {
-      const guildId = req.body.guildId || 'global'
-      const xpData = getXPData(guildId)
-      
-      const sorted = Object.entries(xpData).sort(([, a], [, b]) => b-a).slice(0, 10);
+      const guildId = req.body.guild_id || 'global'
+      console.log(guildId);
+      const xpData = getXPData(guildId)[guildId];
+
+      const sorted = Object.entries(xpData).sort(([, a], [, b]) => b - a).slice(0, 10);
 
       const leaderboardText = sorted.map(
-        ([userId, xp], i) =>  `**${i+1}.** <@${userId}> - ${xp}XP`).join('\n');
+        ([userId, xp], i) => `**${i + 1}.** <@${userId}> - ${xp}XP`).join('\n');
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -345,12 +354,47 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
     } else if (componentId.startsWith('reward:')) {
       const [_prefix, amount, targetUserId] = componentId.split(':');
       const xp = parseInt(amount);
-      const guildId = req.body.guild_Id || 'global'; //Make sure this works.
-      
+      const guildId = req.body.guild_id || 'global'; //Make sure this works.
+      console.log(guildId);
+
+      if (!canReceiveXp(targetUserId, guildId)) {
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            embeds: [
+              {
+                title: '⏳ Cooldown Active',
+                color: 0xff0000,
+                description: `You must wait before giving XP to <@${targetUserId}>. (This rule was enforced to prevent users from spamming the xp system with requests)`,
+                footer: {
+                  text: 'Please do not abuse this xp system!'
+                }
+              }
+            ]
+          }
+        });
+      }
+
       const newTotal = addXP(targetUserId, xp, guildId);
-      const globalTotal = newTotal;
+      let globalTotal = newTotal;
       if (guildId !== 'global') {
         globalTotal = addXP(targetUserId, xp, 'global');
+      }
+
+      if (getXPLevel(newTotal)>getXPLevel(getUserXP(targetUserId, guildId))) {
+        const roleId = getLevelId(getXPLevel(newTotal));
+        const endpoint = `/guilds/${guildId}/members/${targetUserId}/roles/${roleId}`;
+        try{
+          await DiscordRequest(endpoint, {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bot ${env.DISCORD_TOKEN}`
+            }
+          });
+          console.log(`✅ Gave role ${roleId} to user ${targetUserId}`);
+        } catch (err) {
+          console.error('❌ Failed to assign role:', err);
+        }
       }
 
       return res.send({
@@ -362,7 +406,7 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
               color: 0x006853,
               description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!`,
               footer: {
-                text: 'Amazing work!'
+                text: 'Thank you for helping elevate discord!'
               }
             }
           ]

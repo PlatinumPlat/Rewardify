@@ -2,11 +2,12 @@ import fs from 'fs';
 
 const XP_FILE = './xpData.json';
 const GLOBAL_XP_FILE = './globalXpData.json';
+const ROLES_FILE = './roles.json';
 
-export function getXPData(guildId) {
+
+export function getXPData() {
     if (!fs.existsSync(XP_FILE)) return {};
-    const data = JSON.parse(fs.readFileSync(XP_FILE));
-    return data[guildId] || {};
+    return JSON.parse(fs.readFileSync(XP_FILE));
 }
 
 export function getGlobalXPData() {
@@ -28,8 +29,10 @@ export function addXP(userId, amount, guildId = 'global') {
 
         if (!data[guildId]) {
             data[guildId] = {};
+            console.log("doesn't exist");
         } if (!data[guildId][userId]) {
             data[guildId][userId] = 0;
+            console.log("added user");
         }
 
         data[guildId][userId] += amount;
@@ -57,5 +60,51 @@ export function getUserXP(userId, guildId = 'global') {
     } else {
         const data = getXPData();
         return data[guildId]?.[userId] || 0;
+    }
+}
+
+const cooldowns = {};
+
+export function canReceiveXp(userId, guildId = 'global') {
+    const key = `${guildId}_${userId}`;
+    const now = Date.now();
+
+    if (!cooldowns[key] || now - cooldowns[key] >= 15000) {
+        cooldowns[key] = now;
+        return true;
+    }
+
+    return false;
+}
+
+
+export function getXPLevel(xp) {
+    return Math.floor(Math.sqrt(xp / 10));
+}
+
+export function getProgressBar(currentXP) {
+    const currentLevel = getXPLevel(currentXP);
+    const currentLevelXP = (currentLevel * currentLevel * 10);
+    const nextLevelXP = (currentLevel + 1) * (currentLevel + 1) * 10;
+
+    const progress = currentXP - currentLevelXP;
+    const total = nextLevelXP - currentLevelXP;
+    const percent = progress / total;
+
+    const filledBars = Math.round(percent * 10);
+    const emptyBars = 10 - filledBars;
+
+    return '🟩'.repeat(filledBars) + '⬛'.repeat(emptyBars) + ` (${progress}/${total})`;
+}
+
+export function getLevelId(level) {
+    const thresholds = Object.keys(roles)
+        .map(Number)
+        .sort((a, b) => b - a);
+
+    for (const threshold of thresholds) {
+        if (level >= threshold) {
+            return roles[threshold]; // Return the role ID
+        }
     }
 }
