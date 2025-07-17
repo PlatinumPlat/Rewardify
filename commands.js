@@ -116,6 +116,46 @@ const PREPARE_ROLES_COMMAND = {
   ],
 };
 
+const REVIEW_COMMAND = {
+  name: 'review',
+  description: 'Provide a review for someone based on exemplary behaviour (or the opposite)!',
+  type: 1,
+  options: [
+    {
+      name: 'user',
+      description: 'The person you would like to submit a review for',
+      type: 6,
+      required: true,
+    },
+    {
+      name: 'message',
+      description: 'Your review! (Based on your experience with the user and not any biases or rumours)',
+      type: 3,
+      required: true,
+    },
+  ],
+};
+
+const VIEW_REVIEWS_COMMAND = {
+  name: 'viewreviews',
+  description: 'View Rewardify reviews of a certain user',
+  type: 1,
+  options: [
+    {
+      name: 'user',
+      description: 'Who you would like to view reviews of',
+      type: 6,
+      required: true
+    }
+  ]
+};
+
+const MY_REVIEWS_COMMDAND = {
+  name: 'myreviews',
+  description: 'View your reviews',
+  type: 1
+};
+
 // Command containing options
 const CHALLENGE_COMMAND = {
   name: 'challenge',
@@ -134,7 +174,7 @@ const CHALLENGE_COMMAND = {
   // contexts: [0, 2],
 };
 
-const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GIVEXP_COMMAND, XP_COMMAND, LEADERBOARD_COMMAND, GLOBAL_LEADERBOARD_COMMAND, PREPARE_ROLES_HELP_COMMAND, PREPARE_ROLES_COMMAND];
+const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GIVEXP_COMMAND, XP_COMMAND, LEADERBOARD_COMMAND, GLOBAL_LEADERBOARD_COMMAND, PREPARE_ROLES_HELP_COMMAND, PREPARE_ROLES_COMMAND, REVIEW_COMMAND, VIEW_REVIEWS_COMMAND, MY_REVIEWS_COMMDAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
 

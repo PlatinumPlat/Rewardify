@@ -10,8 +10,8 @@ import {
 } from 'discord-interactions';
 import { getRandomEmoji, DiscordRequest } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { addXP, getUserXP, getXPData, getGlobalXPData, canReceiveXp, getProgressBar, getXPLevel, getLevelId, setUpRoles, preparedRolesOrNot } from './xp.js';
-import fs from 'fs';
+import { addXP, getUserXP, getXPData, getGlobalXPData, canReceiveXp, getProgressBar, getXPLevel, getLevelId, setUpRoles, preparedRolesOrNot, getReviews, addReview } from './xp.js';
+import { formatRelative } from 'date-fns';
 
 
 const app = express();
@@ -265,6 +265,93 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
           ]
         }
       });
+    }
+
+    if (name === 'review') {
+      const guildId = req.body.guild_id;
+      const reviewerId = req.body.member.user.id;
+      const revieweeId = data.options.find(o => o.name === 'user')?.value || '';
+      const message = data.options.find(o => o.name === 'message')?.value || '';
+      const timestamp = Date.now();
+
+      if (reviewerId == revieweeId) {
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            embeds: [
+              {
+                title: '❌ Self evalluation is not permitted!',
+                description: 'You cannot review yourself.',
+                footer: {
+                  text: 'Rewardify is watching...'
+                }
+              }
+            ]
+          }
+        });
+      }
+
+      addReview(guildId, revieweeId, {
+        from: reviewerId,
+        message,
+        timestamp
+      });
+
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          embeds: [
+            {
+              title: '✅ Review SUCCESSFUL!',
+              description: `<@${revieweeId}> just received a review from <@${reviewerId}>!`,
+              footer: {
+                text: `Thank you for making a contribution!`
+              }
+            }
+          ]
+        }
+      });
+    }
+
+    if (name === 'viewreviews') {
+      const user = data.options.find(opt => opt.name === 'user')?.value;
+      const guildId = req.body.guild_id;
+      const reviews = getReviews(guildId, user);
+
+      return res.send({
+        type: 4,
+        data: {
+          embeds: [
+            {
+              title: `Reviews for <@${user}>`,
+              fields: reviews.slice(-5).reverse().map(r => ({
+                name: `Review From <@${r.from}>`,
+                value: `${r.message ? r.message : '_Empty_Review_'}\n*${formatRelative(r.timestamp, Date.now())}*`
+              }))
+            }
+          ],
+        }
+      }); 
+    }
+
+    if (name === 'myreviews') {
+      const user = req.body.member.user.id;
+      const guildId = req.body.guild_id;
+      const reviews = getReviews(guildId, user);
+
+      const fields = reviews.slice(-5).reverse().map(r => ({
+        name: `Review From <@${r.from}>`,
+        value: `${r.message} || '_Empty_Review_'}\n*${formatRelative(r.timestamp, Date.now())}*`
+      }));
+
+      const content = fields.length ? { title: `Your Reviews`, fields } : { description: 'No reviews provided' };
+
+      return res.send({
+        type: 4,
+        data: {
+          embeds: [content]
+        }
+      });  
     }
 
     console.error(`unknown command: ${name}`);

@@ -3,6 +3,7 @@ import fs from 'fs';
 const XP_FILE = './xpData.json';
 const GLOBAL_XP_FILE = './globalXpData.json';
 const ROLES_FILE = './roles.json';
+const REVIEWS_FILE = './reviews.json';
 
 
 export function getXPData() {
@@ -145,4 +146,33 @@ export function preparedRolesOrNot(guildId) {
     } 
     
     return roleData[guildId];
+}
+
+export function loadReviews() {
+    if (!fs.existsSync(REVIEWS_FILE)) fs.writeFileSync(REVIEWS_FILE, '{}');
+    return JSON.parse(fs.readFileSync(REVIEWS_FILE));
+}
+
+export function saveReviews(data) {
+    fs.writeFileSync(REVIEWS_FILE, JSON.stringify(data, null, 2));
+}
+
+export function addReview(guildId, userId, review) {
+    const data = loadReviews();
+
+    if (!data[guildId]) {
+        data[guildId] = {};
+    }
+
+    if (!data[guildId][userId]) {
+        data[guildId][userId] = [];
+    }
+
+    data[guildId][userId].push(review);
+    saveReviews(data);
+}
+
+export function getReviews(guildId, userId) {
+    const data = loadReviews();
+    return data[guildId]?.[userId] || [];
 }
