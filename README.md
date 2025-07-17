@@ -15,6 +15,7 @@ A discord bot created by Sophia which implements an interactive reward system fo
 
 # 📔 Instructions for use
 Add Rewardify to your server using the following link!
+
 https://discord.com/oauth2/authorize?client_id=1392681836085379072&permissions=268520448&integration_type=0&scope=bot+applications.commands 
 
 # 📛 Recognition
