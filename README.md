@@ -13,5 +13,9 @@ A discord bot created by Sophia which implements an interactive reward system fo
 - Total of *11* commands!!!
 - Aesthetic and colourful replies from Rewardify :)
 
+# 📔 Instructions for use
+Add Rewardify to your server using the following link!
+https://discord.com/oauth2/authorize?client_id=1392681836085379072&permissions=268520448&integration_type=0&scope=bot+applications.commands 
+
 # 📛 Recognition
 This project was submitted to Converge, a Hack Club YSWS.
