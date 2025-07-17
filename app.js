@@ -10,41 +10,27 @@ import {
 } from 'discord-interactions';
 import { getRandomEmoji, DiscordRequest } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
-import { addXP, getUserXP, getXPData, getGlobalXPData, canReceiveXp, getProgressBar, getXPLevel, getLevelId } from './xp.js';
+import { addXP, getUserXP, getXPData, getGlobalXPData, canReceiveXp, getProgressBar, getXPLevel, getLevelId, setUpRoles, preparedRolesOrNot } from './xp.js';
+import fs from 'fs';
 
-// Create an express app
+
 const app = express();
-// Get port, or default to 3000
 const PORT = process.env.PORT || 3000;
 
 // Store for in-progress games. In production, you'd want to use a DB
 const activeGames = {};
 
-/**
- * Interactions endpoint URL where Discord will send HTTP requests
- * Parse request body and verifies incoming requests using discord-interactions package
- */
 app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async function (req, res) {
-  // Interaction type and data
   const { type, id, data } = req.body;
 
-  /**
-   * Handle verification requests
-   */
   if (type === InteractionType.PING) {
     return res.send({ type: InteractionResponseType.PONG });
   }
 
-  /**
-   * Handle slash command requests
-   * See https://discord.com/developers/docs/interactions/application-commands#slash-commands
-   */
   if (type === InteractionType.APPLICATION_COMMAND) {
     const { name } = data;
 
-    // "test" command
     if (name === 'test') {
-      // Send a message into the channel where command was triggered from
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
@@ -52,7 +38,6 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
           components: [
             {
               type: MessageComponentTypes.TEXT_DISPLAY,
-              // Fetches a random emoji to send from a helper function
               content: `hello world ${getRandomEmoji()}`
             }
           ]
@@ -167,17 +152,11 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          // components: [
-          //   {
-          //     type: MessageComponentTypes.TEXT_DISPLAY,
-          //     context: `✅ Request SUCCESSFUL!\n <@${targetUserId}> has a total of **${xp} XP**!`
-          //   }
-          // ]
           embeds: [
             {
               title: '📊 XP Summary',
               color: 0x00ffcc,
-              description: `<@${targetUserId}> has **${xp} XP** in this server!\n<@${targetUserId}> has **${Globalxp} XP** in total!\n` + `📈 **Level Stats***\n<@${targetUserId}> is at ${level} in this server!\n` + `${progressBar}\n\n` + `At a global scale, <@${targetUserId}> is at ${GlobalLevel}!\n` + `${globalProgressBar}`,
+              description: `<@${targetUserId}> has **${xp} XP** in this server!\n<@${targetUserId}> has **${Globalxp} XP** in total!\n` + `📈 **Level Stats**\n<@${targetUserId}> is at Level ${level} in this server!\n` + `${progressBar}\n\n` + `At a global scale, <@${targetUserId}> is at Level ${GlobalLevel}!\n` + `${globalProgressBar}`,
               footer: {
                 text: 'Continue being helpful to earn more!'
               }
@@ -201,12 +180,6 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          // components: [
-          //   {
-          //     type: MessageComponentTypes.TEXT_DISPLAY,
-          //     content: leaderboardText || `No users with XP yet.`
-          //   }
-          // ]
           embeds: [
             {
               title: '🏆 XP Leaderboard',
@@ -232,12 +205,6 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          // components: [
-          //   {
-          //     type: MessageComponentTypes.TEXT_DISPLAY,
-          //     content: leaderboardText || `No users with XP yet.`
-          //   }
-          // ]
           embeds: [
             {
               title: '🏆 XP Leaderboard',
@@ -245,6 +212,54 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
               description: leaderboardText || '_No users have XP yet._',
               footer: {
                 text: 'Top 15 members worldwide!'
+              }
+            }
+          ]
+        }
+      });
+    }
+
+    if (name === 'prepare-roles-help') {
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          embeds: [
+            {
+              title: '🛠️ Role Preparation Guide',
+              color: 0x00b0f4,
+              description: `Follow the steps below to allow Rewardify to assign roles to members for xp achievements!\n1. Create a role for Level 1 (Rewardify); you can name your role whatever you would like (you can even include short catchphrases to your liking), as long as it has the key words, "Level 1," and "Rewardify." Repeat this six times, each time increasing the level amount, until the last level is called, Level 6+ (Rewardify). In the roles table, make sure you drag the roles in the correct order so that level amounts are in a decreasing order.\n2. Scroll down in the role creation page, and (optionally but recommended) assign each role a different colour.\n3., scroll down even more and select the checkbox corresponding to "Display role members separately from other online members."\n4. Go to your user settings > App Settings > Advanced and enable Developer Mode.\n5. In the role table, on the right side, click "Copy Role Id" and save them (don't mess up the order!).\n6. Once you're done all the previous steps, use the command, /prepare-roles to submit the role ids.`,
+              footer: {
+                text: 'Rewardify Role Setup'
+              }
+            }
+          ]
+        }
+      });
+    }
+
+    if (name === 'prepare-roles') {
+      const guildId = req.body.guild_id;
+      const roleMap = {
+        1: data.options.find(o => o.name === 'level1')?.value,
+        2: data.options.find(o => o.name === 'level2')?.value,
+        3: data.options.find(o => o.name === 'level3')?.value,
+        4: data.options.find(o => o.name === 'level4')?.value,
+        5: data.options.find(o => o.name === 'level5')?.value,
+        6: data.options.find(o => o.name === 'level6plus')?.value,
+      };
+
+      setUpRoles(roleMap, guildId);
+
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          embeds: [
+            {
+              title: '✅ Roles Preparation SUCCESSFUL!',
+              description: 'Role assignment is now enabled for all participants!',
+              color: 0x4caf50,
+              footer: {
+                text: 'yay!'
               }
             }
           ]
@@ -354,7 +369,7 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
     } else if (componentId.startsWith('reward:')) {
       const [_prefix, amount, targetUserId] = componentId.split(':');
       const xp = parseInt(amount);
-      const guildId = req.body.guild_id || 'global'; //Make sure this works.
+      const guildId = req.body.guild_id || 'global';
       console.log(guildId);
 
       if (!canReceiveXp(targetUserId, guildId)) {
@@ -381,39 +396,78 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
         globalTotal = addXP(targetUserId, xp, 'global');
       }
 
-      if (getXPLevel(newTotal)>getXPLevel(getUserXP(targetUserId, guildId))) {
-        const roleId = getLevelId(getXPLevel(newTotal));
-        const endpoint = `/guilds/${guildId}/members/${targetUserId}/roles/${roleId}`;
-        try{
-          await DiscordRequest(endpoint, {
-            method: 'PUT',
-            headers: {
-              Authorization: `Bot ${env.DISCORD_TOKEN}`
+      if (preparedRolesOrNot(guildId)) {
+        let booleanRole = false;
+        if (getXPLevel(newTotal) > getXPLevel(newTotal - xp)) {
+          const roleId = getLevelId(getXPLevel(newTotal), guildId);
+          const endpoint = `/guilds/${guildId}/members/${targetUserId}/roles/${roleId}`;
+          try {
+            await DiscordRequest(endpoint, {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bot ${process.env.DISCORD_TOKEN}`
+              }
+            });
+            console.log(`✅ Gave role ${roleId} to user ${targetUserId}`);
+            booleanRole = true;
+          } catch (err) {
+            console.error('❌ Failed to assign role:', err);
+          }
+        } else {
+          console.log(getXPLevel(newTotal - xp), getXPLevel(newTotal));
+        }
+
+        if (booleanRole) {
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              embeds: [
+                {
+                  title: '💳 Transaction Summary',
+                  color: 0x006853,
+                  description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!\nRole Assignment was SUCCESSFUL; check out <@${targetUserId}>'s new role (click their profile)!`,
+                  footer: {
+                    text: 'Thank you for helping elevate discord!'
+                  }
+                }
+              ]
             }
           });
-          console.log(`✅ Gave role ${roleId} to user ${targetUserId}`);
-        } catch (err) {
-          console.error('❌ Failed to assign role:', err);
-        }
-      }
-
-      return res.send({
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: {
-          embeds: [
-            {
-              title: '💳 Transaction Summary',
-              color: 0x006853,
-              description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!`,
-              footer: {
-                text: 'Thank you for helping elevate discord!'
-              }
+        } else {
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              embeds: [
+                {
+                  title: '💳 Transaction Summary',
+                  color: 0x006853,
+                  description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!\nRole Assignment was ❌UNSUCCESSFUL, please complete /prepare-roles again and make sure your role ids are correct.`,
+                  footer: {
+                    text: 'Thank you for helping elevate discord!'
+                  }
+                }
+              ]
             }
-          ]
+          });
         }
-      });
+      } else {
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            embeds: [
+              {
+                title: '💳 Transaction Summary',
+                color: 0x006853,
+                description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!\nRole Assignment was ❌UNSUCCESSFUL, please follow the instructions provided by /prepare-roles-help to complete /prepare-roles.`,
+                footer: {
+                  text: 'Thank you for helping elevate discord!'
+                }
+              }
+            ]
+          }
+        });
+      }
     }
-
     return;
   }
 

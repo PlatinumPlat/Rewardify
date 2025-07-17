@@ -97,14 +97,52 @@ export function getProgressBar(currentXP) {
     return '🟩'.repeat(filledBars) + '⬛'.repeat(emptyBars) + ` (${progress}/${total})`;
 }
 
-export function getLevelId(level) {
-    const thresholds = Object.keys(roles)
+export function getLevelId(level, guildId) {
+    const roles = JSON.parse(fs.readFileSync(ROLES_FILE));
+
+    if (!roles[guildId] || !roles[guildId].roles) {
+        return null;
+    }
+
+    const levelMap = roles[guildId].roles;
+
+    const thresholds = Object.keys(levelMap)
         .map(Number)
         .sort((a, b) => b - a);
 
     for (const threshold of thresholds) {
         if (level >= threshold) {
-            return roles[threshold]; // Return the role ID
+            return levelMap[threshold];
         }
     }
+
+    return null;
+}
+
+export function setUpRoles(rolemap, guildId) {
+    let roleData = {};
+
+    if (fs.existsSync(ROLES_FILE)) {
+        roleData = JSON.parse(fs.readFileSync(ROLES_FILE));
+    }
+
+    if (!roleData[guildId]) {
+        roleData[guildId] = {};
+    }
+
+    roleData[guildId] = {
+        roles: rolemap
+    };
+
+    fs.writeFileSync(ROLES_FILE, JSON.stringify(roleData, null, 2));
+}
+
+export function preparedRolesOrNot(guildId) {
+    let roleData = {};
+
+    if (fs.existsSync(ROLES_FILE)) {
+        roleData = JSON.parse(fs.readFileSync(ROLES_FILE));
+    } 
+    
+    return roleData[guildId];
 }

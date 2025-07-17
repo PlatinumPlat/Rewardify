@@ -67,6 +67,55 @@ const GLOBAL_LEADERBOARD_COMMAND = {
   type: 1,
 };
 
+const PREPARE_ROLES_HELP_COMMAND = {
+  name: 'prepare-roles-help',
+  description: 'Have not prepared your role system yet? Here is a comprehensive guide!',
+  type: 1,
+};
+
+const PREPARE_ROLES_COMMAND = {
+  name: 'prepare-roles',
+  description: 'Submit your role ids to enable role assignment in recognition of Rewardify xp achievements!',
+  options: [
+    {
+      name: 'level1',
+      description: 'Role id for Rewardify Level 1',
+      type: 3,
+      required: true,
+    }, 
+    {
+      name: 'level2',
+      description: 'Role id for Rewardify Level 2',
+      type: 3,
+      required: true,
+    },
+    {
+      name: 'level3',
+      description: 'Role id for Rewardify Level 3',
+      type: 3,
+      required: true,
+    }, 
+    {
+      name: 'level4',
+      description: 'Role id for Rewardify Level 4',
+      type: 3,
+      required: true,
+    }, 
+    {
+      name: 'level5',
+      description: 'Role id for Rewardify Level 5',
+      type: 3,
+      required: true,
+    }, 
+    {
+      name: 'level6plus',
+      description: 'Role id for Rewardify Level 6+',
+      type: 3,
+      required: true,
+    },
+  ],
+};
+
 // Command containing options
 const CHALLENGE_COMMAND = {
   name: 'challenge',
@@ -85,7 +134,7 @@ const CHALLENGE_COMMAND = {
   // contexts: [0, 2],
 };
 
-const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GIVEXP_COMMAND, XP_COMMAND, LEADERBOARD_COMMAND, GLOBAL_LEADERBOARD_COMMAND];
+const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GIVEXP_COMMAND, XP_COMMAND, LEADERBOARD_COMMAND, GLOBAL_LEADERBOARD_COMMAND, PREPARE_ROLES_HELP_COMMAND, PREPARE_ROLES_COMMAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
 
