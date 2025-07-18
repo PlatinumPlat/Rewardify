@@ -3,6 +3,13 @@
 # 📝 Description
 A discord bot created by Sophia which implements an interactive reward system for users to gift xp to other users for accurate replies, helpful comments, and overall respectful behaviour!
 
+# 🛠 Tools Used
+- Language: Javascript
+- [Discord Documentation](https://discord.com/developers/docs/)
+- NodeJS
+- In testing, Express and then ngrok for public endpoints
+- Nest for deployment
+
 # ⚙ Features
 - XP system with cooldown timer to prevent spamming
 - Leaderboard (server and worldwide versions)
