@@ -5,7 +5,7 @@ A discord bot created by Sophia which implements an interactive reward system fo
 
 # 🛠 Tools Used
 - Language: Javascript
-- ([Discord Documentation](https://discord.com/developers/docs/))
+- [Discord Documentation](https://discord.com/developers/docs/)
 - NodeJS
 - In testing, Express and then ngrok for public endpoints
 - Nest for deployment
