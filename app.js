@@ -528,7 +528,7 @@ app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async fun
                 {
                   title: '💳 Transaction Summary',
                   color: 0x006853,
-                  description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!\nRole Assignment was ❌UNSUCCESSFUL, please complete /prepare-roles again and make sure your role ids are correct.`,
+                  description: `✅ Transaction SUCCESSFUL!\n<@${targetUserId}> now has a total of **${newTotal} XP** in this server and **${globalTotal} XP** in total!`,
                   footer: {
                     text: 'Thank you for helping elevate discord!'
                   }
