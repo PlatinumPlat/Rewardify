@@ -10,6 +10,12 @@ A discord bot created by Sophia which implements an interactive reward system fo
 - In testing, Express and then ngrok for public endpoints
 - Nest for deployment
 
+# ▶ Demo
+Would like to see a working version of Rewardify before adding the bot to your server? 
+
+Here it is (in an accessible drive link):
+[Click Here!](https://drive.google.com/file/d/1ZWUKZHkoNqOZirQ9nXaXhs4nAQtYLuYS/view?usp=sharing)
+
 # ⚙ Features
 - XP system with cooldown timer to prevent spamming
 - Leaderboard (server and worldwide versions)
