@@ -14,9 +14,9 @@ A discord bot created by Sophia which implements an interactive reward system fo
 - /givexp - give xp to a user
 - /xp - see how much xp a user has
 - /globalleaderboard - view global leaderboard
-- /leaderboard - view server-wide leaderboard
+- /leaderboard - view server-wide leaderboard (obviously use /givexp first before testing out this command, or else a leaderboard doesn't exist)
 - /prepare-roles-help - discover how to prepare for role assignment
-- /prepare-roles - submit your server's role ids to allow role assignment
+- /prepare-roles - submit your server's role ids to allow role assignment (prior to submitting your roles, please follow the instructions in /prepare-roles-help
 - /review - provide a review for a user
 - /myreviews - view your reviews
 - /viewreviews - view reviews of a certain user
